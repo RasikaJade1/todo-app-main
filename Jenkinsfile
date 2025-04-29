@@ -4,7 +4,7 @@ pipeline {
         nodejs 'Node22' // Node.js 22.14.0
     }
     environment {
-        MONGO_URI = 'mongodb://mongo:27017/todoapp' // Match docker-compose.yml
+        MONGO_URI = 'mongodb://127.0.0.1:27017/testdb' // For tests on host
     }
     stages {
         stage('Checkout') {
@@ -21,7 +21,8 @@ pipeline {
             steps {
                 script {
                     bat '''
-                        tasklist | findstr "mongod" || start /B mongod --dbpath C:\\data\\db
+                        tasklist | findstr "mongod" || (start /B mongod --dbpath C:\\data\\db --logpath C:\\data\\db\\mongod.log 2>&1 & exit 0)
+                        timeout /t 5 /nobreak >nul
                     '''
                 }
             }
@@ -38,6 +39,9 @@ pipeline {
             }
         }
         stage('Deploy') {
+            environment {
+                MONGO_URI = 'mongodb://mongo:27017/todoapp' // For Docker deployment
+            }
             steps {
                 bat 'docker-compose up -d'
             }
