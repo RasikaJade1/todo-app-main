@@ -35,7 +35,7 @@ pipeline {
         }
         stage('Build Docker Image') {
             steps {
-                bat 'docker build -t todo-app:latest .'
+                bat 'docker build --no-cache -t todo-app:latest .'
             }
         }
         stage('Deploy') {
