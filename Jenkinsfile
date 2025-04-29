@@ -60,14 +60,15 @@ pipeline {
                 ])
                 archiveArtifacts artifacts: 'coverage/**/*', allowEmptyArchive: true
                 bat 'taskkill /IM mongod.exe /F || exit 0'
-                bat 'docker-compose down || exit 0'
+                // Remove docker-compose down to keep containers running
             }
         }
         success {
-            echo 'Pipeline completed successfully!'
+            echo 'Pipeline completed successfully! App should be accessible at http://localhost:3000'
         }
         failure {
-            echo 'Pipeline failed!'
+            echo 'Pipeline failed! Cleaning up...'
+            bat 'docker-compose down || exit 0' // Only clean up on failure
         }
     }
 }
