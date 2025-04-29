@@ -1,30 +1,17 @@
 pipeline {
     agent any
     tools {
-        nodejs 'Node22' // Updated to Node.js 22
-    }
-    environment {
-        MONGO_URI = 'mongodb://127.0.0.1:27017/testdb'
+        nodejs 'Node22' // Node.js 22.14.0
     }
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main', credentialsId: 'github-credentials', url: 'https://github.com/Sanskruti2209/todo-app.git'
+                git branch: 'main', credentialsId: 'github-credentials', url: 'https://github.com/RasikaJade1/todo-app-main.git'
             }
         }
         stage('Install Dependencies') {
             steps {
                 bat 'npm install'
-            }
-        }
-        stage('Start MongoDB') {
-            steps {
-                script {
-                    // Check if MongoDB is running; start if not
-                    bat '''
-                        tasklist | findstr "mongod" || start /B mongod --dbpath C:\\data\\db
-                    '''
-                }
             }
         }
         stage('Run Tests') {
@@ -59,8 +46,6 @@ pipeline {
                 reportName: 'Jest Coverage Report'
             ])
             archiveArtifacts artifacts: 'coverage/**/*', allowEmptyArchive: true
-            // Clean up MongoDB process
-            bat 'taskkill /IM mongod.exe /F || exit 0'
         }
         success {
             echo 'Pipeline completed successfully!'
