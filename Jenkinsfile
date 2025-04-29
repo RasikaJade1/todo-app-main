@@ -4,7 +4,7 @@ pipeline {
         nodejs 'Node22' // Node.js 22.14.0
     }
     environment {
-        MONGO_URI = 'mongodb://127.0.0.1:27017/testdb'
+        MONGO_URI = 'mongodb://mongo:27017/todoapp' // Match docker-compose.yml
     }
     stages {
         stage('Checkout') {
@@ -20,7 +20,6 @@ pipeline {
         stage('Start MongoDB') {
             steps {
                 script {
-                    // Check if MongoDB is running; start if not
                     bat '''
                         tasklist | findstr "mongod" || start /B mongod --dbpath C:\\data\\db
                     '''
@@ -39,9 +38,6 @@ pipeline {
             }
         }
         stage('Deploy') {
-            when {
-                branch 'main'
-            }
             steps {
                 bat 'docker-compose up -d'
             }
@@ -50,7 +46,6 @@ pipeline {
     post {
         always {
             script {
-                // Publish HTML coverage report
                 publishHTML(target: [
                     allowMissing: true,
                     alwaysLinkToLastBuild: true,
@@ -60,9 +55,7 @@ pipeline {
                     reportName: 'Jest Coverage Report'
                 ])
                 archiveArtifacts artifacts: 'coverage/**/*', allowEmptyArchive: true
-                // Clean up MongoDB process
                 bat 'taskkill /IM mongod.exe /F || exit 0'
-                // Clean up Docker containers
                 bat 'docker-compose down || exit 0'
             }
         }
