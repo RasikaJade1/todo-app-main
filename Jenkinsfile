@@ -3,6 +3,9 @@ pipeline {
     tools {
         nodejs 'Node22' // Node.js 22.14.0
     }
+    environment {
+        MONGO_URI = 'mongodb://127.0.0.1:27017/testdb'
+    }
     stages {
         stage('Checkout') {
             steps {
@@ -14,38 +17,54 @@ pipeline {
                 bat 'npm install'
             }
         }
+        stage('Start MongoDB') {
+            steps {
+                script {
+                    // Check if MongoDB is running; start if not
+                    bat '''
+                        tasklist | findstr "mongod" || start /B mongod --dbpath C:\\data\\db
+                    '''
+                }
+            }
+        }
         stage('Run Tests') {
             steps {
                 bat 'npm test -- --config=jest.config.js --coverage'
                 junit 'test-results.xml'
             }
         }
+        stage('Build Docker Image') {
+            steps {
+                bat 'docker build -t todo-app:latest .'
+            }
+        }
         stage('Deploy') {
             when {
-                branch 'main' // Deploy only on main branch
+                branch 'main'
             }
             steps {
-                withCredentials([string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')]) {
-                    bat '''
-                        git config --global user.email "jenkins@ci.com"
-                        git config --global user.name "Jenkins CI"
-                        npm run deploy
-                    '''
-                }
+                bat 'docker-compose up -d'
             }
         }
     }
     post {
         always {
-            publishHTML(target: [
-                allowMissing: true,
-                alwaysLinkToLastBuild: true,
-                keepAll: true,
-                reportDir: 'coverage/lcov-report',
-                reportFiles: 'index.html',
-                reportName: 'Jest Coverage Report'
-            ])
-            archiveArtifacts artifacts: 'coverage/**/*', allowEmptyArchive: true
+            script {
+                // Publish HTML coverage report
+                publishHTML(target: [
+                    allowMissing: true,
+                    alwaysLinkToLastBuild: true,
+                    keepAll: true,
+                    reportDir: 'coverage/lcov-report',
+                    reportFiles: 'index.html',
+                    reportName: 'Jest Coverage Report'
+                ])
+                archiveArtifacts artifacts: 'coverage/**/*', allowEmptyArchive: true
+                // Clean up MongoDB process
+                bat 'taskkill /IM mongod.exe /F || exit 0'
+                // Clean up Docker containers
+                bat 'docker-compose down || exit 0'
+            }
         }
         success {
             echo 'Pipeline completed successfully!'
