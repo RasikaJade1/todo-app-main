@@ -43,7 +43,8 @@ pipeline {
                 MONGO_URI = 'mongodb://mongo:27017/todoapp' // For Docker deployment
             }
             steps {
-                bat 'docker-compose up -d'
+                bat 'docker-compose down || exit 0'
+                bat 'docker-compose up -d --build'
             }
         }
     }
